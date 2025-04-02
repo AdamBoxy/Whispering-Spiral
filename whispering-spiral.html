@@ -27,7 +27,7 @@ function createEcho(x, y) { const echo = { x, y, radius: 1, angle: 0, hue: Math.
 
 function drawEcho(echo) { const { x, y, radius, angle, hue } = echo; const spiralX = x + radius * Math.cos(angle); const spiralY = y + radius * Math.sin(angle);
 
-ctx.beginPath(); ctx.arc(spiralX, spiralY, 2, 0, Math.PI * 2); ctx.fillStyle = hsl(${hue}, 100%, 70%); ctx.fill(); }
+ctx.beginPath(); ctx.arc(spiralX, spiralY, 2, 0, Math.PI * 2); ctx.fillStyle = `hsl(${hue}, 100%, 70%)`; ctx.fill(); }
 
 function updateEcho(echo) { echo.radius += 0.5 + Math.sin(time / 100) * 0.2; echo.angle += 0.1; echo.life += 1; }
 

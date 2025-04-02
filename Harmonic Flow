@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Harmonic Flow</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      overflow: hidden;
+      height: 100%;
+      cursor: none;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Make canvas fill the window
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  
+  // Configuration
+  const config = {
+    particleCount: 80,
+    baseRadius: Math.min(canvas.width, canvas.height) * 0.3,
+    fieldInfluence: 0.15,
+    particleSize: 3,
+    speed: 1,
+    trailLength: 20,
+    fadeRate: 0.08,
+    cursorRadius: 120
+  };
+
+  // Particles array
+  let particles = [];
+  let cursorPos = { x: null, y: null };
+  let isInteracting = false;
+  
+  // Initialize
+  function init() {
+    particles = [];
+    
+    // Create particles in a circular formation
+    for (let i = 0; i < config.particleCount; i++) {
+      const angle = (i / config.particleCount) * Math.PI * 2;
+      const radius = config.baseRadius + (Math.random() * 20 - 10);
+      
+      particles.push({
+        x: canvas.width / 2 + Math.cos(angle) * radius,
+        y: canvas.height / 2 + Math.sin(angle) * radius,
+        angle: angle,
+        radius: radius,
+        speed: (0.5 + Math.random() * 0.5) * config.speed,
+        size: config.particleSize,
+        hue: i * (360 / config.particleCount),
+        trail: [],
+        pulse: Math.random() * Math.PI * 2
+      });
+    }
+  }
+  
+  // Update each particle
+  function updateParticles() {
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    particles.forEach(p => {
+      // Natural orbital movement
+      p.angle += p.speed * 0.005;
+      p.pulse += 0.03;
+      
+      // Calculate base position
+      let targetX = centerX + Math.cos(p.angle) * p.radius;
+      let targetY = centerY + Math.sin(p.angle) * p.radius;
+      
+      // Apply cursor influence if close enough
+      if (isInteracting && cursorPos.x !== null) {
+        const dx = cursorPos.x - p.x;
+        const dy = cursorPos.y - p.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < config.cursorRadius) {
+          const force = (1 - distance / config.cursorRadius) * config.fieldInfluence;
+          targetX += dx * force;
+          targetY += dy * force;
+        }
+      }
+      
+      // Smooth movement
+      p.x += (targetX - p.x) * 0.03;
+      p.y += (targetY - p.y) * 0.03;
+      
+      // Store trail
+      p.trail.unshift({ x: p.x, y: p.y });
+      
+      // Limit trail length
+      if (p.trail.length > config.trailLength) {
+        p.trail.pop();
+      }
+    });
+  }
+  
+  // Draw everything
+  function draw() {
+    // Clear with fade effect
+    ctx.fillStyle = `rgba(0, 0, 0, ${config.fadeRate})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw particles and trails
+    particles.forEach(p => {
+      // Draw trail
+      p.trail.forEach((pos, i) => {
+        const alpha = 1 - i / config.trailLength;
+        const size = p.size * (1 - i / config.trailLength) * (1 + 0.3 * Math.sin(p.pulse));
+        
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 95%, 60%, ${alpha})`;
+        ctx.fill();
+      });
+    });
+    
+    // Draw cursor influence field if interacting
+    if (isInteracting && cursorPos.x !== null) {
+      const gradient = ctx.createRadialGradient(
+        cursorPos.x, cursorPos.y, 0,
+        cursorPos.x, cursorPos.y, config.cursorRadius
+      );
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      
+      ctx.beginPath();
+      ctx.arc(cursorPos.x, cursorPos.y, config.cursorRadius, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+    }
+  }
+  
+  // Animation loop
+  function animate() {
+    updateParticles();
+    draw();
+    requestAnimationFrame(animate);
+  }
+  
+  // Event listeners
+  canvas.addEventListener('mousemove', (e) => {
+    cursorPos.x = e.clientX;
+    cursorPos.y = e.clientY;
+    isInteracting = true;
+  });
+  
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    cursorPos.x = e.touches[0].clientX;
+    cursorPos.y = e.touches[0].clientY;
+    isInteracting = true;
+  });
+  
+  canvas.addEventListener('mouseleave', () => {
+    isInteracting = false;
+  });
+  
+  window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    config.baseRadius = Math.min(canvas.width, canvas.height) * 0.3;
+    init();
+  });
+  
+  // Start animation
+  init();
+  animate();
+</script>
+</body>
+</html>
